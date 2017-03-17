@@ -2,6 +2,7 @@
 
 #include "Timer.h" // This if for Arduino, don't need this for particles since is already included.
 #include <SdFat.h> // This is the Sd library
+#include <EEPROM.h>
 
 // Pick an SPI configuration.
 // See SPI configuration section below (comments are for photon).
@@ -43,33 +44,23 @@ const uint8_t chipSelect = D0;
 // Initializers
 FatFile FileA; // creating object called FileA to match class FatFile
 //String FileName;
-int FileNameTracker = 1;
+int FileNameTracker;
 //--------------------------------------------------------------------------------
+
+// need to make an app that when device first turns on increase the size of Filetraker
+
 
 void writeSDMemory(String Name, String Data)
 {
-    // Need to do this just at the begginign of the program otherwhise is going to cause problems
-    
-    //String FileName = Name + String(FileNameTracker) + ".txt";
-    bool CheckFile = true;
-    do{
-      String FileName = Name + String(FileNameTracker) + ".txt";
-      char *FileNameChar = FileName.c_str();
-      CheckFile = FileA.exists(FileNameChar);
-      if (CheckFile == true)
-      {
-        FileNameTracker++;
-      }
-    } while (CheckFile == true);
-    
-    
     //Serial.print(Data);
-    Serial.println(FileNameTracker);
-    //String FileName = Name + String(FileNameTracker) + ".txt"; // A string with the name of the field
+    byte high = EEPROM.read(0);
+    byte low = EEPROM.read(1);
+    int FileNameTracker = word(high,low);
+    Serial.println(FileNameTracker); // Flag
+    String FileName = Name + String(FileNameTracker) + ".txt"; // A string with the name of the field
     char *FileNameChar = FileName.c_str();
     char *DataChar = Data.c_str();
     
-    bool CheckFile = FileA.exists(FileNameChar);
     FileA.open(FileNameChar, O_RDWR | O_CREAT | O_AT_END); // open file with name "FileName"
     FileA.write(DataChar); // write data to SD card
     FileA.close(); // don't forget to close the file, otherwise you run the risk of corrupting the file and card. 
@@ -78,6 +69,8 @@ void writeSDMemory(String Name, String Data)
     if (FileA.fileSize() > 1000000) // if the accel file exceeds 1MB, on to the next one
     {
         FileNameTracker++; // increase tracker so data is stored in new file
+        EEPROM.write(0,highByte(FileNameTracker));
+        EEPROM.write(1,lowByte(FileNameTracker));
     }
 }   
 
