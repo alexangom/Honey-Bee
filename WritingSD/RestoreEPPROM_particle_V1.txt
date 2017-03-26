@@ -1,0 +1,49 @@
+// This program stores int variables in EPPROM memory. To do this, the int type has to be splited in two bytes. Bytes will be stored in two memmory locations in the EPPROM memory.
+// EEPROM memory can only store bytes. That is why int is splitted into two bytes. The largest int value is limited to 60000. If want to go larger than that, more bytes will be needed. 
+
+
+//-------------Libraries ------------------------------
+// This #include statement was automatically added by the Particle IDE.
+#include <Arduino.h>
+
+// ---------- Functions -------------------------------
+void resetTrackers() // reset all memories to read one int value
+{
+    Serial.println("Restoring memory values...");
+    int value = 0; // the int value that will be stored
+    EEPROM.write(0,highByte(value)); // write the high byte in memory location 0
+    EEPROM.write(1,lowByte(value)); // write the low byte in memory location 1
+    EEPROM.write(2,highByte(value));
+    EEPROM.write(3,lowByte(value));
+    EEPROM.write(4,highByte(value));
+    EEPROM.write(5,lowByte(value));
+}
+
+void readTrackers() // read the int values that were stored in the memories
+{
+    byte highByte = EEPROM.read(0); // read the high byte from memory location 0
+    byte lowByte = EEPROM.read(1); // read the low byte from memory location 1
+    int tracker = word(highByte, lowByte); //combines both byte into single int. Need Arduino lib to use word function
+    Serial.print("Tracker 1: "); 
+    Serial.println(tracker);
+    highByte = EEPROM.read(2);
+    lowByte = EEPROM.read(3);
+    tracker = word(highByte, lowByte);
+    Serial.print("Tracler 2: ");
+    Serial.println(tracker);
+    highByte = EEPROM.read(4);
+    lowByte = EEPROM.read(5);
+    tracker = word(highByte, lowByte);
+    Serial.print("Tracler 3: ");
+    Serial.println(tracker);
+}
+
+void setup() {
+  Serial.begin(9600); // Starts serial communication
+  resetTrackers();
+  readTrackers();
+}
+
+void loop() {
+
+}
