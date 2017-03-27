@@ -8,38 +8,36 @@
    */
 // Checks the temperature. Had to do some heavy duty arithmetic here - it's based on the datasheet
 // supplied by Amphenol, the manufacturer of the thermistor. 
-
-int checkTemp() {
-    globalTempFileName = "globalTemp" + String(globalTempFileTracker) + ".txt"; // Create file SD card
-    flag = globalTempFile.open(globalTempFileName, O_RDWR | O_CREAT | O_AT_END); // Open file
-    
-    if (flag == 0) { 
-        Serial.println("CHECKTEMP(): " + globalTempFileName + " O_RDWR | O_CREAT | O_AT_END failed.");
-    }
-    
-    if (flag == 1) { 
-        Serial.println("CHECKTEMP(): " + globalTempFileName + " opened successfully.");
-    }
-
-    int invalid = 0; //used to check temperature reading
-    long time;
-    int stringcheck;
+    long t;
     int temperature;
     int thermistorResistance;
-    int R1=10000;
+    double thermistorVoltage;
+
+
+int checkTemp() {
+    int flag_temp = 0;
+    Serial.print(" flag: ");
+    Serial.println(flag_temp);
     
- analog_temp: 
-    thermistorAnalog = analogRead(A5); // read the raw thermistor analog data
-    time= millis();
+    thermistorAnalog = analogRead(2); // read the raw thermistor analog data
+    Serial.print("thermodigital: ");
+    Serial.println(thermistorAnalog);
+    
+    thermistorVoltage = thermistorAnalog * (5/1023);
+    Serial.print("thermo voltage: ");
+    Serial.println(thermistorVoltage);
+    
+    //t = millis();
     //timestamp = analogRead(A6); // RAJA: input to bring in time & date stamp; if we are using arduino look below
      // convert resistance to ohms using voltage divider equation, where R1 = 10k ohms
      // shielded equation from divide by 0 by putting it inside an if statement
     if (thermistorAnalog < 4095) { 
-        thermistorResistance = R1*(1-thermistorAnalog/4095)*(4095/thermistorAnalog);
+         int R1 = 10000;
+        thermistorResistance = (3.3)*(10000/thermistorAnalog) - 10000;
+        //thermistorResistance = R1*(1-thermistorAnalog/4095)*(4095/thermistorAnalog);
          // calculated temperature by plotting a line of best fit using linear algebra and MATLAB. Error was found to be 3.7998*10^-4 Kelvins using Igor Pro. Compressed some of the math operations to reduce floating point error propagation, which increases as number of operations increase
        temperature = pow((.0011106 + 0.00023724*log(thermistorResistance) + 0.000000074738*pow(log(thermistorResistance), 3)), -1) - 273.15;
     }
-    
     else if (thermistorAnalog >= 4095) {
         // if A5 reads 4095, then there is a short and/or the thermistor has failed
         thermistorResistance = 0;
@@ -48,7 +46,9 @@ int checkTemp() {
         //globalTempFile.write(String(time) + " " + "Temperature = Invalid "+ "ThermistorResistance = (0) Thermistor_Fail" + ";\n"); //writes to SD card
         //goto check_file; //skips temperature calclations and goes to check_file loop
     }
-    
+
+    Serial.print("thermo resistace: ");
+    Serial.println(thermistorResistance);
    
    
    //checks temp reading. if temperature is < 36 or > 38 it will go back to analog temp loop to get new data otherwise it will continue down the code
@@ -86,7 +86,7 @@ int checkTemp() {
           }
       }
  */
-    globalTempFile.write(String(time) + " " + String(temperature) + "; "); // write sD card; 
+   /* globalTempFile.write(String(time) + " " + String(temperature) + "; "); // write sD card; 
     globalTempFile.write("thermistor Resistance: " + String(thermistorResistance) + ";\n");  
  
  check_file:  
@@ -104,6 +104,22 @@ int checkTemp() {
         Serial.println("CHECKTEMP(): " + globalTempFileName + " closed successfully.");
     }
 }
+*/
+    flag_temp=1;
+    Serial.print("Temp: ");
+    Serial.println(temperature);
+    Serial.print(" flag: ");
+    Serial.println(flag_temp);
+    return flag_temp;
+}
 
-return checktemp
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  checkTemp();
+  delay(5000);
 }
