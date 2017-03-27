@@ -1,13 +1,14 @@
 // this is a test
 String EKGData;
 int stringCheck;
+String pseudoFile;
 void checkEKG() {
     //globalEKGFileName = "globalEKG" + String(globalEKGFileTracker) + ".txt"; // SD creating file
    //globalEKGFile.open(globalEKGFileName, O_RDWR | O_CREAT | O_AT_END); // Openns the file
   //EKG = analogRead(A4); Reads EKG Data from the Arduino or Particle Photon
   for(int i = 0; i < 100; i++)//Test that will generate random numbers(simulation of numbers received from EKG without actually connecting a device)
   {
-    EKG = (int)random(0,100);
+    EKG = int(random(0,100));
   }
     EKGData += String(EKG);
     
@@ -36,11 +37,13 @@ void loop()
   if(stringCheck == 1)//Checks to see if EKGData has surpassed 616 bytes
   {
     EKGData += " " + Time.timeStr();//Writes the time next to the data to record Timestamp of completion(Time is a class already defined in Arduino/Particle?)
+    //globalEKGFile.write(EKGData); // write the buffer to the card
+    pseudoFile = EKG;//Pseudo File write since in this case not actually using a file to write to.
     EKGData = "";//Clears the variable
   }
-  while(strinCheck == 0)
+  while(stringCheck == 0)
   {
-    this.EKGData;
+    this.checkEKG;
   }
  
 }
