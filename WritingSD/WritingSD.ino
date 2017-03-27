@@ -1,3 +1,5 @@
+// Checking GitHub
+
 #include "Timer.h" // This if for Arduino, don't need this for particles since is already included.
 #include <SdFat.h> // This is the Sd library
 #include <EEPROM.h>
