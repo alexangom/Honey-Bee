@@ -3,6 +3,16 @@
 #include <TimeLib.h>
 #include <DS1307RTC.h>
 
+// connection from realtimeclock shield to arduino
+// Tiny RTC 12C modules
+// Use right connection in the shield
+/* DS1307 - Arduino
+ * VCC - 3.3V
+ * GND - GND
+ * SDA - A4
+ * SCL - A5
+ */
+
 // Initiators for time clock
 tmElements_t tm;
 String realTime;
