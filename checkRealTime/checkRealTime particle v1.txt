@@ -1,0 +1,53 @@
+// This program reads the time stored in the RTC (real time clock) of the photon. 
+// Backup batery has to be supplied to the photon. Vbat - 3.3 V
+// Honey-Bee Setup software has to run first sp this code can work
+// Photon has an internal RTC, there is not need to add an external RTC. Just need to add backup power to Vbat pin
+
+// Inititators
+int hours;
+int minutes;
+int seconds;
+String realTime;
+int day;
+int month;
+int year;
+String realDate;
+
+// Time function
+String checkRealTime(int TimeOrDate){ // The function requires int input. If 0, time will be returned. If 1, date will be return.
+    Time.zone(-7); // Adjust time zone for Arizona zone
+    hours = Time.hour(); // reads hour from the RTC
+    minutes = Time.minute();
+    seconds = Time.second();
+    realTime = String(hours) + ':' + String(minutes) + ':' + String(seconds); // Creates an string with time. hour:minute:second
+    day = Time.day();
+    month = Time.month();
+    year = Time.year();
+    realDate = String(day)+ '/' + String(month) + '/' + String(year); // Creates an string for date. dd/mm/yyyy
+    if (TimeOrDate == 0) {
+        return realTime;
+    } else if (TimeOrDate == 1) {
+        return realDate;
+    }
+}
+
+// Initiator for testing code
+String A; 
+String B;
+
+SYSTEM_MODE(SEMI_AUTOMATIC); // Make photon to be offline. Make sure this code runs well without connecting to internet.
+
+void setup() {
+    Serial.begin(9600); // For debbuging purposes
+    while(!Serial); // wait for serial to be ready
+}
+
+void loop() {
+    A = checkRealTime(0); // Read real time and store in string
+    B = checkRealTime(1); // reads real date and store in string
+    Serial.print("Time = ");
+    Serial.print(A);
+    Serial.print(" Date = ");
+    Serial.println(B);
+    delay(1000);
+}

@@ -1,0 +1,36 @@
+// This code is to set up honey bee initatles variables, memory locations, real time clock, and more.
+// This code has to be uploaded and run to photon first before flashin the newHoneyBee code
+// Photon should have acces to internet to make this set up
+
+// Initiators
+int hours;
+int minutes;
+int seconds;
+String realTime;
+int day;
+int month;
+int year;
+String realDate;
+
+// Function to set up real time. Since photon has access to internet. Time is read from internet and RTC is adjusted automatically.
+void adjustRealTime(){
+    hours = Time.hour();
+    minutes = Time.minute();
+    seconds = Time.second();
+    day = Time.day();
+    month = Time.month();
+    year = Time.year();
+    Serial.println("Real time clock adjusted");
+}
+
+void setup() {
+    Serial.begin(9600);
+    while(!Serial);
+    Serial.println("Setting up honey bee...");
+    delay(3000);
+    adjustRealTime();
+}
+
+void loop() {
+
+}
