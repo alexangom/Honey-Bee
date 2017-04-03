@@ -1,3 +1,9 @@
+int x;
+int y;
+int z;
+int xVolt;
+int yVolt;
+int zVolt;
 long tACC;
 void checkACC
 {
@@ -7,7 +13,9 @@ void checkACC
     int x = analogRead(A0);//3D movement
     int y = analogRead(A1);
     int z = analogRead(A2);
-    
+    int xVolt = x * 0.000805664;
+    int yVolt = y * 0.000805664;
+    int zVolt = z * 0.000805664;
     tACC = micros();
     
     //double accelMagnitude = floor(sqrt(pow(analogRead(A0),2) + pow(analogRead(A1),2) + pow(analogRead(A2),2)) + 0.5); 
@@ -21,7 +29,7 @@ void checkACC
     }
     
     if (accelData.length() <= 616) { 
-        accelData += " X-Dimension: " + String(x) + " Y-Dimension: " + String(y) + " Z-Dimension: " + String(z) +  " " + tAcc "\n"; // each data point is on its own line
+        accelData += " X-Dimension: " + String(xVolt) + " Y-Dimension: " + String(yVolt) + " Z-Dimension: " + String(zVolt) +  " " + tAcc "\n"; // each data point is on its own line
     }
     
    // if (globalAccelFile.fileSize() > 1000000) // if the accel file exceeds 1MB, on to the next one
