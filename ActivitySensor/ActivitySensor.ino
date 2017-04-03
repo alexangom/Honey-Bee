@@ -3,7 +3,13 @@ void checkACC
     //globalAccelFileName = "globalAccel" + String(globalAccelFileTracker) + ".txt";
     //globalAccelFile.open(globalAccelFileName, O_RDWR | O_CREAT | O_AT_END);
     
-    accelMagnitude = floor(sqrt(pow(analogRead(A0),2) + pow(analogRead(A1),2) + pow(analogRead(A2),2)) + 0.5); 
+    int x = analogRead(A0);//3D movement
+    int y = analogRead(A1);
+    int z = analogRead(A2);
+    
+    
+    
+    double accelMagnitude = floor(sqrt(pow(analogRead(A0),2) + pow(analogRead(A1),2) + pow(analogRead(A2),2)) + 0.5); 
     accelData += String(accelMagnitude).remove(4); 
     
     // maximum String length is 622 bytes. Let's just be safe and say 616 so we don't overrun. 
@@ -14,7 +20,7 @@ void checkACC
     }
     
     if (accelData.length() <= 616) { 
-        accelData += "\n"; // each data point is on its own line
+        accelData += " X-Dimension: " + String(x) + " Y-Dimension: " + String(y) + " Z-Dimension: " + String(z) + "\n"; // each data point is on its own line
     }
     
    // if (globalAccelFile.fileSize() > 1000000) // if the accel file exceeds 1MB, on to the next one
@@ -33,3 +39,4 @@ void loop() {
   // put your main code here, to run repeatedly:
 
 }
+
