@@ -5,6 +5,8 @@ int xVolt;
 int yVolt;
 int zVolt;
 long tACC;
+int stringCheck;
+int eraseAccel;
 String accelData;
 int checkACC
 {
@@ -23,15 +25,30 @@ int checkACC
     //double accelMagnitude = floor(sqrt(pow(analogRead(A0),2) + pow(analogRead(A1),2) + pow(analogRead(A2),2)) + 0.5); 
     //accelData += String(accelMagnitude).remove(4); 
     
+    if(eraseAccel == 1)
+    {
+        accelData = "";
+        eraseAccel = 0;
+        stringCheck = 0;
+    }
+    if(stringCheck == 0)
+    {
+        accelData += "X-Dimension: " + String(xVolt) + " Y-Dimension: " + String(yVolt) + " Z-Dimension: " + String(zVolt) +  " " + tAcc "\n"; // each data point is on its own line
+    }
+    else if(stringCheck == 1)
+    {
+        eraseAccel = 1;
+    }
+    
     // maximum String length is 622 bytes. Let's just be safe and say 616 so we don't overrun. 
     if (accelData.length() > 616) {
-        //globalAccelFile.write(accelData);
-        accelData = "";
+        stringCheck = 1;
     }
     
     if (accelData.length() <= 616) { 
-        accelData += "X-Dimension: " + String(xVolt) + " Y-Dimension: " + String(yVolt) + " Z-Dimension: " + String(zVolt) +  " " + tAcc "\n"; // each data point is on its own line
+        stringCheck = 0;
     }
+    return stringCheck;
     
    // if (globalAccelFile.fileSize() > 1000000) // if the accel file exceeds 1MB, on to the next one
     //{
