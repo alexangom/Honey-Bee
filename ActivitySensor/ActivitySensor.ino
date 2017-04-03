@@ -7,8 +7,8 @@ int zVolt;
 long tACC;
 int stringCheck = 0;
 int eraseAccel = 0;
-String accelData;
-int checkACC
+String accelData = "";
+int checkACC()
 {
     //globalAccelFileName = "globalAccel" + String(globalAccelFileTracker) + ".txt";
     //globalAccelFile.open(globalAccelFileName, O_RDWR | O_CREAT | O_AT_END);
@@ -27,7 +27,7 @@ int checkACC
     
     if(stringCheck == 0)
     {
-        accelData += "X-Dimension: " + String(xVolt) + " Y-Dimension: " + String(yVolt) + " Z-Dimension: " + String(zVolt) +  " " + tAcc "\n"; // each data point is on its own line
+        accelData += "X-Dimension: " + String(xVolt) + " Y-Dimension: " + String(yVolt) + " Z-Dimension: " + String(zVolt) +  " " + tACC + "\n"; // each data point is on its own line
     }
     else if(stringCheck == 1)
     {
@@ -57,6 +57,7 @@ int checkACC
     
     //globalAccelFile.close(); // don't forget to close the file, otherwise you run the risk of corrupting the file and card. 
 }
+
 void setup() {
   // put your setup code here, to run once:
 
@@ -66,4 +67,3 @@ void loop() {
   // put your main code here, to run repeatedly:
 
 }
-
