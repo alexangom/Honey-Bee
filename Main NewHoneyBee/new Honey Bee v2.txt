@@ -1,0 +1,331 @@
+
+// -------------- Libraries -----------------------
+// This #include statement was automatically added by the Particle IDE.
+#include <SdFat.h>
+
+// This #include statement was automatically added by the Particle IDE.
+#include <Arduino.h>
+
+
+//-------------- Setup SPI (SD shield) configuration. (Particle) ------------------------------------------
+// See SPI configuration section below (comments are for photon).
+#define SPI_CONFIGURATION  1
+// Particle Photon connections to microSD breakout board
+// Photon     <->   microSD board
+// N/A         -    CD
+// D3          -    D0
+// GND         -    GND
+// D4          -    SCK
+// 3V3         -    VCC
+// D2          -    DI
+// D1          -    CS
+//// //// //// //// ////
+
+#if SPI_CONFIGURATION == 0
+// Primary SPI with DMA
+// SCK => A3, MISO => A4, MOSI => A5, SS => A2 (default)
+SdFat sd;
+const uint8_t chipSelect = SS;
+#elif SPI_CONFIGURATION == 1
+// Secondary SPI with DMA
+// SCK => D4, MISO => D3, MOSI => D2, SS => D1
+SdFat sd(1);
+const uint8_t chipSelect = D1;
+#elif SPI_CONFIGURATION == 2
+// Primary SPI with Arduino SPI library style byte I/O.
+// SCK => A3, MISO => A4, MOSI => A5, SS => A2 (default)
+SdFatLibSpi sd;
+const uint8_t chipSelect = SS;
+#elif SPI_CONFIGURATION == 3
+// Software SPI.  Use any digital pins.
+// MISO => D5, MOSI => D6, SCK => D7, SS => D0
+SdFatSoftSpi<D5, D6, D7> sd;
+const uint8_t chipSelect = D0;
+#endif  // SPI_CONFIGURATION
+
+// -------------- Initializers -----------------------------------------------------
+
+//------------------ Functions --------------------------------------------------------------
+
+// checkTrackers: Looks at the EEPROM memory to define trakers for ECG, activity, and temperature. Then increases all trackers by 1 and stores back to the EEPROM.
+// This function was designed so it can be used at the begining of the program and prevent from subwritting files that already exist in the SD memory
+void checkTrackers()
+{
+  byte ECG_1 = EEPROM.read(0); // Integer data are stored in the memory in two memory locations. This is becayse only a byte can be store per memory. 
+  byte ECG_2 = EEPROM.read(1);
+  int ECGTracker = word(ECG_1, ECG_2); // Combine both bytes and makes an integer
+  ECGTracker++; // increase tracker by one so when micro is turn on for first time data is not store in old files
+  EEPROM.write(0,highByte(ECGTracker)); // Updates the tracker
+  EEPROM.write(1,lowByte(ECGTracker));
+  byte accelerometer_1 = EEPROM.read(2);
+  byte accelerometer_2 = EEPROM.read(3);
+  int accelerometerTracker = word (accelerometer_1, accelerometer_2);
+  accelerometerTracker++;
+  EEPROM.write(2,highByte(accelerometerTracker));
+  EEPROM.write(3,lowByte(accelerometerTracker));
+  byte temp_1 = EEPROM.read(4);
+  byte temp_2 = EEPROM.read(5);
+  int tempTracker = word (temp_1, temp_2);
+  tempTracker++;
+  EEPROM.write(4,highByte(tempTracker));
+  EEPROM.write(5,lowByte(tempTracker));
+}
+
+// writeSDMemory: This function receives Name ("ECG", "accelerometer", "temp") and data that wants to be stored. Read EEPROM to define file tracker and stores data in the SD memory
+// This functin will be run every time that data needs to be stored in the SD memory
+// Need to include FatFile library
+void writeSDMemory(String Name, String Data)
+{
+    FatFile FileA; // creating object called FileA to match class FatFile
+    int highMemory;
+    int lowMemory;
+    
+    // Set up EEPROM memory locations that will be used
+    if (Name == "ECG") 
+    {
+      highMemory = 0;
+      lowMemory = 1;
+    }
+    else if (Name == "Accel")
+    {
+      highMemory = 2;
+      lowMemory = 3;
+    }
+    else if (Name == "temp")
+    {
+      highMemory = 4;
+      lowMemory = 5; 
+    }
+    
+    // Assigning tracker and names
+    byte high = EEPROM.read(highMemory); // Integer data are stored in the memory in two memory locations. This is becayse only a byte can be store per memory. 
+    byte low = EEPROM.read(lowMemory);
+    int FileNameTracker = word(high,low); // Combines both bytes to form an int
+    String FileName = Name + String(FileNameTracker) + ".txt"; // A string with the name of the field
+
+    //Storing in the SD memory
+    FileA.open(FileName, O_RDWR | O_CREAT | O_AT_END); // open file with name "FileName"
+    FileA.write(Data); // write data to SD card
+    FileA.close(); // don't forget to close the file, otherwise you run the risk of corrupting the file and card. 
+    
+    // Checking file size
+    if (FileA.fileSize() > 1000000) // if the text file exceeds 1MB, on to the next one
+    {
+        FileNameTracker++; // increase tracker so data is stored in new file
+        EEPROM.write(highMemory,highByte(FileNameTracker)); // Update tracker in the EEPROM memory
+        EEPROM.write(lowMemory,lowByte(FileNameTracker));
+        Serial.println("New ECG file"); // REMOVE
+    }
+}   
+
+bool flag; // flag checks whether certain events were successful or not
+// Find out if the SD card is cooperating. Good idea to call this before attempting to do anything major 
+// with the SD Card. This function is a little leaky - some SD errors can get by without this function picking them up. 
+bool checkSdError() { 
+    Serial.print("sd.cardErrorCode(): "); 
+    flag = sd.cardErrorCode(); // directly related to sd success/failure
+    Serial.println(flag);
+    Serial.print("sd.cardErrorData(): "); // for additional debugging
+    Serial.println(sd.cardErrorData());
+    
+    // If there's an error, write high to D7. You can plug in an LED at D7 to check the SD status whenever you want. 
+    if (!flag) {
+        digitalWrite(D7, LOW);
+    }
+    
+    else {
+        digitalWrite(D7, HIGH);
+    }
+    return flag;
+} 
+//---------------------------  ECG ------------------------
+// ECG initializers
+String EKGData;
+int stringCheck = 0;
+long tECG;
+int EKG;
+double EKGVolt;
+int eraseEKG = 0;
+String obtainTime;
+String obtainDate;
+String TimeData;
+
+int checkEKG() {
+  if (eraseEKG == 1){ // this check if string was already stored in ECG
+    EKGData = ""; // erase data in the string
+    stringCheck = 0;
+    eraseEKG = 0;
+    obtainTime = checkRealTime(0);
+    obtainDate = checkRealTime(1);
+    TimeData = obtainTime + " " + obtainDate + "\n";
+    EKGData += TimeData;
+  }
+  
+  EKG = analogRead(A4); // read analog input
+  EKGVolt = EKG * 0.000805664; // conver the analog input into voltage value
+  EKGData += String(EKGVolt) + "\n"; // stores values in a string, go to the next line
+  
+  // maximum String length is 622 bytes. Let's just be safe and say 616. 
+  if (EKGData.length() <= 616) { 
+    stringCheck = 0;
+  }
+  else
+  {
+    stringCheck = 1;// when string is full so data is stored in the SD memory
+  }
+  return stringCheck;
+}
+
+//------------------- temp ---------------------------------
+// temperature initializers
+long tTemp;
+int temperature;
+int thermistorResistance;
+double thermistorVoltage;
+int thermistorAnalog;
+String tempData;
+int flag_temp = 0;
+  
+int checkTemp() {
+  thermistorAnalog = analogRead(A5); // read the raw thermistor analog data
+  obtainTime = checkRealTime(0);
+  obtainDate = checkRealTime(1);
+  TimeData = obtainTime + " " + obtainDate;
+  //tTemp = millis(); // store time after the analog read
+  thermistorVoltage = thermistorAnalog * 0.000805664; // convert the analog to voltage
+  if (thermistorAnalog < 4095) { 
+    int R1 = 10000;
+    thermistorResistance = (3.3)*(10000/thermistorVoltage) - 10000; // calculates the thermoresisotr resistance
+    temperature = pow((.0011106 + 0.00023724*log(thermistorResistance) + 0.000000074738*pow(log(thermistorResistance), 3)), -1) - 273.15 + 2; // calculate temp in celcious
+  }
+  else if (thermistorAnalog >= 4095) {
+    // if A5 reads 4095, then there is a short and/or the thermistor has failed
+    thermistorResistance = 0;
+    temperature = 0;
+  }
+  tempData = String(temperature) + " " + TimeData + "\n"; // Make data into a single string
+  flag_temp = 1; // return 1 when the funciton is finished
+  Serial.println(tempData);
+  return flag_temp;
+}
+
+// ---------------- accelerometer ----------------------------
+int x;
+int y;
+int z;
+double xVolt;
+double yVolt;
+double zVolt;
+int stringCheckAccel = 0;
+int eraseAccel = 0;
+String accelData;
+String obtainTimeAccel;
+String obtainDateAccel;
+String TimeDataAccel;
+
+
+int checkAccel() {
+    if(eraseAccel == 1)
+    {
+        accelData = "";
+        stringCheckAccel = 0;
+        eraseAccel = 0;
+        obtainTimeAccel = checkRealTime(0);
+        obtainDateAccel = checkRealTime(1);
+        TimeDataAccel = obtainTimeAccel + " " + obtainDateAccel + "\n";
+        accelData += TimeDataAccel;
+    }
+    
+    x = analogRead(A0);//3D movement
+    y = analogRead(A1);
+    z = analogRead(A2);
+    xVolt = x * 0.000805664;
+    yVolt = y * 0.000805664;
+    zVolt = z * 0.000805664;
+    accelData += String(xVolt) + " " + String(yVolt) + " " + String(zVolt) + "\n";
+
+    // maximum String length is 622 bytes. Let's just be safe and say 616 so we don't overrun. 
+    if (accelData.length() > 308) {
+        stringCheckAccel = 1;
+    }
+    
+    if (accelData.length() <= 308) { 
+        stringCheckAccel = 0;
+    }
+    return stringCheckAccel;
+}
+
+
+// -------------- check real time ---------------------
+// Inititators
+int hours;
+int minutes;
+int seconds;
+String realTime;
+int day;
+int month;
+int year;
+String realDate;
+
+String checkRealTime(int TimeOrDate){ // The function requires int input. If 0, time will be returned. If 1, date will be return.
+    Time.zone(-7); // Adjust time zone for Arizona zone
+    hours = Time.hour(); // reads hour from the RTC
+    minutes = Time.minute();
+    seconds = Time.second();
+    realTime = String(hours) + ':' + String(minutes) + ':' + String(seconds); // Creates an string with time. hour:minute:second
+    day = Time.day();
+    month = Time.month();
+    year = Time.year();
+    realDate = String(day)+ '/' + String(month) + '/' + String(year); // Creates an string for date. dd/mm/yyyy
+    if (TimeOrDate == 0) {
+        return realTime;
+    } else if (TimeOrDate == 1) {
+        return realDate;
+    }
+}
+
+
+// ------------ main ----------------------------
+void mainHoneyBee(){
+    if (stringCheck == 1){ // means that string was filled in the checkEKG function
+        writeSDMemory("ECG", EKGData); // stores ECG data in SD memory
+        eraseEKG = 1; // a flag so checkEKG function knows that string hsa to be erased and start a new one
+        stringCheck = 0; // retur stringcheck to 0 so remove the flag of filled ECG string
+    }
+    if (flag_temp == 1){ // checkTemp function returns 1 meaning the a new temperature value was created
+        writeSDMemory("temp", tempData);  // stores the new tem value in SD memory
+        flag_temp = 0; // retunr the flag to 0
+    }
+    if (stringCheckAccel == 1){
+        writeSDMemory("Accel", accelData);
+        eraseAccel = 1;
+        stringCheckAccel = 0;
+    }
+}
+
+
+// main
+SYSTEM_MODE(SEMI_AUTOMATIC); // Make photon to be offline. Make sure this code runs well without connecting to internet.
+
+
+Timer CheckTempTimer(60000, checkTemp); // sampling every minute
+Timer CheckEKGTimer(5, checkEKG); // sample EKG at 200 Hz  
+Timer CheckAccelTimer(50, checkAccel); // sampling at 20 Hz
+Timer mainTimer(1, mainHoneyBee); // function run every msec
+
+void setup() {
+    Serial.begin(9600); // debugging purposes
+    sd.begin(chipSelect, SPI_FULL_SPEED); // init at full speed for best performance
+    checkTrackers();
+    
+    // Start the timers
+    mainTimer.start();
+    CheckTempTimer.start(); 
+    CheckEKGTimer.start();
+    CheckAccelTimer.start();
+}
+
+
+void loop() {
+
+}
